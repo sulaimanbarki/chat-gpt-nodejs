@@ -121,3 +121,59 @@ exports.recommendedCharacters = async (req, res) => {
         res.status(500).json({message: error.message});
     }
 }
+
+exports.recentlyContactedCharacters = async (req, res) => {
+    try {
+        const user = req.user;
+
+        const prompts = await Prompt.aggregate([
+            { $match: { user_id: user._id } },
+            { $sort: { createdAt: -1 } }, // Sort by createdAt field in descending order
+            { $group: { _id: "$character_id", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            {
+                $lookup: {
+                    from: "characters",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "character",
+                },
+            },
+        ]);
+        const characters = [];
+        for(let i = 0; i < prompts.length; i++){
+            const character = prompts[i].character[0];
+            const category = await Category.findById(character.category_id);
+
+            const prompt = await Prompt.find({ character_id: character._id, user_id: user._id }).select('prompt completion createdAt');
+
+            const newCharacter = {
+                _id: character._id,
+                character_name: character.name,
+                character_description: character.character_description,
+                character_type: character.type,
+                character_category_id: character.category_id,
+                character_category_name: category.name,
+                chat_history: prompt
+            };
+
+            characters.push(newCharacter);
+        }
+
+        res.send(characters);
+        return;
+
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({message: error.message});
+    }
+}
+
+exports.categoriesList = async (req, res) => {
+    try {
+        res.send(await Category.find().select(['slug','name']));
+        return;
+    }catch (error) {
+        res.status(500).json({message: error.message});
+    }
+}

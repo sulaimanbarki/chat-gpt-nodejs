@@ -33,6 +33,18 @@ const userSchema = mongoose.Schema(
         avatar: {
             type: String,
             default: null
+        },
+        freeTrial: {
+            type: Number,
+            default: 0
+        },
+        trialSubDate: {
+            type: Date,
+            default: null
+        },
+        trialExpDate: {
+            type: Date,
+            default: null
         }
     },
     {
